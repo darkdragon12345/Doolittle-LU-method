@@ -1,0 +1,65 @@
+      module matixsol
+      implicit none
+      contains
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c matrix solving program
+c 2024.1.18
+c  type|variable | description
+c   i  |mata| linear coefficient matrix
+c   i  |matb| constant array
+c   o  |matx| element array
+c the matrixs must be full rank
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      subroutine matsolve(mata,matb,matx)
+      implicit none
+c input/output
+      real*8 :: mata(:,:)
+      real*8 :: matb(:)
+      real*8 :: matx(:)
+c temporary variates
+      real*8,allocatable :: matl(:,:)
+      real*8,allocatable :: matu(:,:)
+      real*8,allocatable :: maty(:)
+      integer*4 :: numb
+      integer*4 :: cycl
+
+ccccccccccccccccccccccccccccccccccc
+      numb = size( matb )
+      allocate( matl(numb,numb) )
+      allocate( matu(numb,numb) )
+      allocate( maty(numb) )
+c initialize
+      matl = 0.0
+      matu = 0.0
+      maty = 0.0
+
+c LU decomposition of matrix
+      matu(1 , 1:numb) = mata(1 , 1:numb)
+      matl(1:numb , 1) = mata(1:numb , 1) / matu(1 , 1)
+      do cycl = 2 , numb
+        matu(cycl , cycl:numb) = mata(cycl , cycl:numb)
+     &                         - matmul(matl(cycl , 1:cycl-1)
+     &                         , matu(1:cycl-1 , cycl:numb))
+        if (cycl .le. numb) then
+          matl(cycl:numb , cycl) = (mata(cycl : numb , cycl)
+     &                           - matmul(matl(cycl:numb
+     &                           , 1:cycl-1) , matu( 1:cycl-1
+     &                           , cycl))) / matu(cycl , cycl)
+        end if
+      end do
+c solve Uy=b
+      maty(1) = matb(1)
+      do cycl = 2 , numb
+        maty(cycl) = matb(cycl) - dot_product(matl(cycl , 1:cycl-1)
+     &             , maty(1:cycl-1))
+      end do
+
+c solve Ux=y
+      matx(numb) = maty(numb) / matu(numb , numb)               
+      do cycl = numb-1 , 1 , -1
+        matx(cycl) = (maty(cycl) - dot_product( matu(cycl , cycl + 1
+     &             : numb),matx(cycl + 1 : numb))) / matu(cycl,cycl)
+      end do
+      return
+      end subroutine matsolve
+      end module matixsol
